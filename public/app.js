@@ -86,7 +86,16 @@ function startCamera() {
     html5QrCode = new Html5Qrcode('camera-preview')
     html5QrCode.start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 150 } },
+        { 
+            fps: 10, 
+            qrbox: { width: 250, height: 150 },
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.EAN_8
+            ]
+        },
         (decodedText) => {
             document.getElementById('barcode-input').value = decodedText
             stopCamera()
