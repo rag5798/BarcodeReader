@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expiration Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+</head>
+<body>
+
+    <h1>Expiration Tracker</h1>
+
+    <div class="form-container">
+        <input type="text" id="barcode-input" placeholder="Enter UPC barcode" />
+        <button onclick="lookupBarcode()">Look Up Item</button>
+        <button onclick="startCamera()">Scan Barcode</button>
+
+        <video id="camera-preview" style="width:100%; display:none; border-radius:8px;"></video>
+        <canvas id="camera-canvas" style="display:none;"></canvas>
+
+        <div id="product-info">
+            <p><strong>Name:</strong> <span id="product-name"></span></p>
+            <p><strong>Brand:</strong> <span id="product-brand"></span></p>
+        </div>
+
+        <input type="date" id="expiration-date" />
+        <button onclick="saveItem()">Add Item</button>
+    </div>
+
+    <div class="items-container" id="items-list"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
