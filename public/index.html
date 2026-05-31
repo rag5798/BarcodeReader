@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expiration Tracker</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@latest/html5-qrcode.min.js"></script>
 </head>
 <body>
 
@@ -16,8 +16,7 @@
         <button onclick="lookupBarcode()">Look Up Item</button>
         <button onclick="startCamera()">Scan Barcode</button>
 
-        <video id="camera-preview" style="width:100%; display:none; border-radius:8px;"></video>
-        <canvas id="camera-canvas" style="display:none;"></canvas>
+        <div id="camera-preview" style="width:100%; display:none;"></div>
 
         <div id="product-info">
             <p><strong>Name:</strong> <span id="product-name"></span></p>

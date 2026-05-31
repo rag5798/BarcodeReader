@@ -77,36 +77,32 @@ async function loadItems() {
 }
 
 // ******************************* Camera scanning functionality using ZXing library *******************************
-let cameraActive = false
-let codeReader = null
+let html5QrCode = null
 
 function startCamera() {
-    if (cameraActive) {
-        stopCamera()
-        return
-    }
-
-    codeReader = new ZXing.BrowserMultiFormatReader()
     const preview = document.getElementById('camera-preview')
     preview.style.display = 'block'
-    cameraActive = true
 
-    codeReader.decodeFromVideoDevice(null, 'camera-preview', (result, err) => {
-        if (result) {
-            document.getElementById('barcode-input').value = result.getText()
+    html5QrCode = new Html5Qrcode('camera-preview')
+    html5QrCode.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 150 } },
+        (decodedText) => {
+            document.getElementById('barcode-input').value = decodedText
             stopCamera()
             lookupBarcode()
-        }
-    })
+        },
+        (error) => {}
+    )
 }
 
 function stopCamera() {
-    if (codeReader) {
-        codeReader.reset()
-        codeReader = null
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            html5QrCode = null
+            document.getElementById('camera-preview').style.display = 'none'
+        })
     }
-    document.getElementById('camera-preview').style.display = 'none'
-    cameraActive = false
 }
 
 loadItems()
