@@ -10,8 +10,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ericblade/quagga2": "^1.12.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "mongoose": "^9.6.3"
+    "mongoose": "^9.6.3",
+    "multer": "^2.1.1",
+    "sharp": "^0.34.5",
+    "zxing-wasm": "^3.0.3"
   }
 }

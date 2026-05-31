@@ -5,31 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expiration Tracker</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/html5-qrcode@latest/html5-qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css">
+    <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script>
 </head>
 <body>
-
+ 
     <h1>Expiration Tracker</h1>
-
+ 
     <div class="form-container">
         <input type="text" id="barcode-input" placeholder="Enter UPC barcode" />
         <button onclick="lookupBarcode()">Look Up Item</button>
-
-        <input type="file" id="barcode-photo" accept="image/*" capture="environment" style="display:none;" onchange="scanPhoto(event)">
-        <button onclick="document.getElementById('barcode-photo').click()">Scan Barcode</button>
-        <div id="camera-preview" style="width:100%; display:none;"></div>
-
+ 
         <div id="product-info">
             <p><strong>Name:</strong> <span id="product-name"></span></p>
             <p><strong>Brand:</strong> <span id="product-brand"></span></p>
         </div>
-
-        <input type="date" id="expiration-date" />
+ 
+        <input type="text" id="expiration-date" placeholder="Select expiration date" readonly />
+        <div id="calendar-container"></div>
         <button onclick="saveItem()">Add Item</button>
     </div>
-
+    <div style="max-width:600px; margin: 0 auto 10px auto; text-align:right;">
+        <button onclick="loadItems()" style="width:auto; padding: 8px 16px;">↻ Refresh</button>
+    </div>
     <div class="items-container" id="items-list"></div>
-
+    <div class="items-container" id="items-list"></div>
+ 
     <script src="app.js"></script>
 </body>
 </html>

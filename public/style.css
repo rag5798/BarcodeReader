@@ -3,20 +3,20 @@
     padding: 0;
     box-sizing: border-box;
 }
-
+ 
 body {
     font-family: Arial, sans-serif;
     background: #f5f5f5;
     color: #333;
     padding: 20px;
 }
-
+ 
 h1 {
     text-align: center;
     margin-bottom: 20px;
     color: #2c3e50;
 }
-
+ 
 .form-container {
     background: white;
     padding: 20px;
@@ -25,7 +25,7 @@ h1 {
     max-width: 600px;
     margin: 0 auto 30px auto;
 }
-
+ 
 .form-container input {
     width: 100%;
     padding: 10px;
@@ -34,7 +34,7 @@ h1 {
     border-radius: 6px;
     font-size: 16px;
 }
-
+ 
 .form-container button {
     width: 100%;
     padding: 10px;
@@ -46,11 +46,11 @@ h1 {
     font-size: 16px;
     cursor: pointer;
 }
-
+ 
 .form-container button:hover {
     background: #34495e;
 }
-
+ 
 #product-info {
     background: #eaf4fb;
     padding: 10px;
@@ -58,12 +58,12 @@ h1 {
     margin-bottom: 10px;
     display: none;
 }
-
+ 
 .items-container {
     max-width: 600px;
     margin: 0 auto;
 }
-
+ 
 .item-card {
     background: white;
     padding: 15px;
@@ -74,26 +74,36 @@ h1 {
     justify-content: space-between;
     align-items: center;
 }
-
+ 
 .item-card.expiring-soon {
     background: #ffe6e6;
     border-left: 5px solid red;
 }
-
+ 
 .item-info h3 {
     font-size: 16px;
     margin-bottom: 4px;
 }
-
+ 
 .item-info p {
     font-size: 14px;
     color: #666;
 }
-
+ 
 .delete-btn {
     background: none;
     border: none;
     font-size: 22px;
     cursor: pointer;
     color: #c0392b;
+}
+
+#calendar-container {
+    margin-bottom: 10px;
+}
+
+#calendar-container .pika-single {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 6px;
 }
