@@ -1,6 +1,5 @@
-
 let currentProduct = null
-
+ 
 const picker = new Pikaday({
     field: document.getElementById('expiration-date'),
     container: document.getElementById('calendar-container'),
@@ -11,12 +10,13 @@ const picker = new Pikaday({
         document.getElementById('expiration-date').value = date.toISOString().split('T')[0]
     }
 })
-
+ 
 let scannerActive = false
 let scannerStream = null
 let scannerInterval = null
 let overlayAnimFrame = null
-
+let scanLineColor = 'red'
+ 
 async function toggleScanner() {
     if (scannerActive) {
         stopScanner()
@@ -24,11 +24,11 @@ async function toggleScanner() {
         startScanner()
     }
 }
-
+ 
 async function startScanner() {
     const container = document.getElementById('scanner-container')
     const video = document.getElementById('scanner-video')
-
+ 
     try {
         scannerStream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -43,50 +43,49 @@ async function startScanner() {
         alert('Camera access denied or unavailable.')
     }
 }
-
+ 
 function drawOverlay() {
     const video = document.getElementById('scanner-video')
     const overlay = document.getElementById('scanner-overlay')
     const ctx = overlay.getContext('2d')
-
+ 
     overlay.width = video.clientWidth
     overlay.height = video.clientHeight
-
+ 
     ctx.clearRect(0, 0, overlay.width, overlay.height)
-
+ 
     // Dark overlay top and bottom
     ctx.fillStyle = 'rgba(0,0,0,0.4)'
     ctx.fillRect(0, 0, overlay.width, overlay.height * 0.45)
     ctx.fillRect(0, overlay.height * 0.55, overlay.width, overlay.height * 0.45)
-
-    // Red scan line in the middle
-    const lineY = overlay.height * 0.5
-    ctx.strokeStyle = 'red'
+ 
+    // Replace the red line section with a target box
+    ctx.strokeStyle = scanLineColor
     ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.moveTo(0, lineY)
-    ctx.lineTo(overlay.width, lineY)
-    ctx.stroke()
-
+    ctx.strokeRect(20, overlay.height * 0.35, overlay.width - 40, overlay.height * 0.30)
+ 
     overlayAnimFrame = requestAnimationFrame(drawOverlay)
 }
-
+ 
 async function scanLine() {
     const video = document.getElementById('scanner-video')
     const capture = document.getElementById('scanner-capture')
 
     if (video.readyState !== video.HAVE_ENOUGH_DATA) return
 
-    // Only capture a thin horizontal strip around the center line
-    const stripHeight = 80
-    capture.width = video.videoWidth
+    scanLineColor = scanLineColor === 'red' ? 'orange' : 'red'
+
+    // Larger strip so camera can focus at a comfortable distance
+    const stripHeight = 200
+    const stripWidth = video.videoWidth
+    capture.width = stripWidth
     capture.height = stripHeight
 
-    const ctx = capture.getContext('2d')
+    const captureCtx = capture.getContext('2d')
     const sourceY = (video.videoHeight / 2) - (stripHeight / 2)
-    ctx.drawImage(video, 0, sourceY, video.videoWidth, stripHeight, 0, 0, video.videoWidth, stripHeight)
+    captureCtx.drawImage(video, 0, sourceY, stripWidth, stripHeight, 0, 0, stripWidth, stripHeight)
 
-    const imageData = capture.toDataURL('image/jpeg', 0.9)
+    console.log('Scanning frame...')
 
     try {
         const hints = new Map()
@@ -102,18 +101,7 @@ async function scanLine() {
         const reader = new ZXing.MultiFormatReader()
         reader.setHints(hints)
 
-        const img = new Image()
-        img.src = imageData
-        await new Promise(resolve => img.onload = resolve)
-
-        const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = img.width
-        tempCanvas.height = img.height
-        const tempCtx = tempCanvas.getContext('2d')
-        tempCtx.drawImage(img, 0, 0)
-
-        const pixelData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height)
-        const luminanceSource = new ZXing.HTMLCanvasElementLuminanceSource(tempCanvas)
+        const luminanceSource = new ZXing.HTMLCanvasElementLuminanceSource(capture)
         const binaryBitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminanceSource))
         const result = reader.decode(binaryBitmap)
 
@@ -126,7 +114,7 @@ async function scanLine() {
         // No barcode found in this frame, keep scanning
     }
 }
-
+ 
 function stopScanner() {
     clearInterval(scannerInterval)
     cancelAnimationFrame(overlayAnimFrame)
