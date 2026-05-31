@@ -77,40 +77,28 @@ async function loadItems() {
 }
 
 // ******************************* Camera scanning functionality using ZXing library *******************************
-let html5QrCode = null
+async function scanPhoto(event) {
+    const file = event.target.files[0]
+    if (!file) return
 
-function startCamera() {
-    const preview = document.getElementById('camera-preview')
-    preview.style.display = 'block'
+    const html5QrCode = new Html5Qrcode('camera-preview')
 
-    html5QrCode = new Html5Qrcode('camera-preview')
-    html5QrCode.start(
-        { facingMode: 'environment' },
-        { 
-            fps: 10, 
-            qrbox: { width: 250, height: 150 },
-            formatsToSupport: [
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.EAN_8
-            ]
-        },
-        (decodedText) => {
-            document.getElementById('barcode-input').value = decodedText
-            stopCamera()
+    try {
+        const result = await html5QrCode.scanFile(file, false)
+        document.getElementById('barcode-input').value = result
+        lookupBarcode()
+    } catch (error) {
+        // First attempt failed, try again with enhanced settings
+        try {
+            const result = await html5QrCode.scanFile(file, true)
+            document.getElementById('barcode-input').value = result
             lookupBarcode()
-        },
-        (error) => {}
-    )
-}
-
-function stopCamera() {
-    if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            html5QrCode = null
-            document.getElementById('camera-preview').style.display = 'none'
-        })
+        } catch (secondError) {
+            alert('Could not read barcode. Please try a clearer photo or enter manually.')
+        }
+    } finally {
+        // Reset so the same photo can be retried if needed
+        document.getElementById('barcode-photo').value = ''
     }
 }
 

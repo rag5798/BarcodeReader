@@ -14,8 +14,9 @@
     <div class="form-container">
         <input type="text" id="barcode-input" placeholder="Enter UPC barcode" />
         <button onclick="lookupBarcode()">Look Up Item</button>
-        <button onclick="startCamera()">Scan Barcode</button>
 
+        <input type="file" id="barcode-photo" accept="image/*" capture="environment" style="display:none;" onchange="scanPhoto(event)">
+        <button onclick="document.getElementById('barcode-photo').click()">Scan Barcode</button>
         <div id="camera-preview" style="width:100%; display:none;"></div>
 
         <div id="product-info">
