@@ -1,5 +1,39 @@
 let currentProduct = null
- 
+
+// ── Modal helpers (replace native alert/confirm) ──────────────────────────────
+function showAlert(message) {
+    return new Promise(resolve => {
+        document.getElementById('modal-message').textContent = message
+        document.getElementById('modal-cancel').style.display = 'none'
+        document.getElementById('modal-confirm').textContent = 'OK'
+        document.getElementById('modal-overlay').classList.add('active')
+
+        document.getElementById('modal-confirm').onclick = () => {
+            document.getElementById('modal-overlay').classList.remove('active')
+            resolve()
+        }
+    })
+}
+
+function showConfirm(message) {
+    return new Promise(resolve => {
+        document.getElementById('modal-message').textContent = message
+        document.getElementById('modal-cancel').style.display = ''
+        document.getElementById('modal-confirm').textContent = 'Confirm'
+        document.getElementById('modal-overlay').classList.add('active')
+
+        document.getElementById('modal-confirm').onclick = () => {
+            document.getElementById('modal-overlay').classList.remove('active')
+            resolve(true)
+        }
+        document.getElementById('modal-cancel').onclick = () => {
+            document.getElementById('modal-overlay').classList.remove('active')
+            resolve(false)
+        }
+    })
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const picker = new Pikaday({
     field: document.getElementById('expiration-date'),
     container: document.getElementById('calendar-container'),
@@ -40,7 +74,7 @@ async function startScanner() {
         drawOverlay()
         scannerInterval = setInterval(scanLine, 150)
     } catch (error) {
-        alert('Camera access denied or unavailable.')
+        await showAlert('Camera access denied or unavailable.')
     }
 }
  
@@ -138,48 +172,73 @@ document.getElementById('barcode-input').addEventListener('input', (e) => {
  
 async function lookupBarcode() {
     const barcode = document.getElementById('barcode-input').value.trim()
-    if (!barcode) return alert('Please enter a barcode')
- 
-    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`)
-    const data = await res.json()
- 
-    if (data.status === 1) {
-        const product = data.product
-        currentProduct = {
-            name: product.product_name || 'Unknown',
-            brand: product.brands || 'Unknown',
-            barcode: barcode
+    if (!barcode) {
+        await showAlert('Please enter a barcode.')
+        return
+    }
+
+    try {
+        const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`)
+        const data = await res.json()
+
+        if (data.status === 1) {
+            const product = data.product
+            currentProduct = {
+                name: product.product_name || 'Unknown',
+                brand: product.brands || 'Unknown',
+                barcode: barcode
+            }
+            document.getElementById('product-name').textContent = currentProduct.name
+            document.getElementById('product-brand').textContent = currentProduct.brand
+            document.getElementById('product-info').style.display = 'block'
+        } else {
+            await showAlert('Product not found. Try another barcode.')
         }
-        document.getElementById('product-name').textContent = currentProduct.name
-        document.getElementById('product-brand').textContent = currentProduct.brand
-        document.getElementById('product-info').style.display = 'block'
-    } else {
-        alert('Product not found. Try another barcode.')
+    } catch (err) {
+        await showAlert('Failed to reach the product database. Check your connection.')
     }
 }
  
 async function saveItem() {
-    if (!currentProduct) return alert('Look up a barcode first')
+    if (!currentProduct) {
+        await showAlert('Look up a barcode first.')
+        return
+    }
     const expirationDate = document.getElementById('expiration-date').value
-    if (!expirationDate) return alert('Please select an expiration date')
- 
-    await fetch('/api/items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...currentProduct, expirationDate })
-    })
- 
-    currentProduct = null
-    document.getElementById('barcode-input').value = ''
-    document.getElementById('product-info').style.display = 'none'
-    loadItems()
-    document.getElementById('barcode-input').focus()
+    if (!expirationDate) {
+        await showAlert('Please select an expiration date.')
+        return
+    }
+
+    try {
+        const res = await fetch('/api/items', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...currentProduct, expirationDate })
+        })
+        if (!res.ok) throw new Error('Save failed')
+
+        currentProduct = null
+        document.getElementById('barcode-input').value = ''
+        document.getElementById('product-info').style.display = 'none'
+        document.getElementById('barcode-input').focus()
+        await loadItems()
+    } catch (err) {
+        await showAlert('Failed to save the item. Please try again.')
+    }
 }
  
 async function deleteItem(id, name) {
-    if (!confirm(`Remove ${name} from the list?`)) return
-    await fetch(`/api/items/${id}`, { method: 'DELETE' })
-    loadItems()
+    const confirmed = await showConfirm(`Remove "${name}" from the list?`)
+    if (!confirmed) return
+
+    try {
+        const res = await fetch(`/api/items/${id}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Delete failed')
+        await loadItems()
+    } catch (err) {
+        await showAlert('Failed to remove the item. Please try again.')
+    }
 }
  
 async function loadItems() {
@@ -187,9 +246,16 @@ async function loadItems() {
     const defaultDate = new Date()
     defaultDate.setDate(defaultDate.getDate() + 7)
     picker.setDate(defaultDate)
- 
-    const res = await fetch('/api/items')
-    const items = await res.json()
+
+    let items
+    try {
+        const res = await fetch('/api/items')
+        if (!res.ok) throw new Error('Fetch failed')
+        items = await res.json()
+    } catch (err) {
+        await showAlert('Could not load items from the database.')
+        return
+    }
  
     // Sort by closest expiration date
     items.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate))
@@ -197,11 +263,13 @@ async function loadItems() {
     const container = document.getElementById('items-list')
     container.innerHTML = ''
  
-    const today = new Date()
- 
+    // Normalize today to UTC midnight so daysLeft math aligns with stored UTC dates
+    const now = new Date()
+    const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+
     items.forEach(item => {
         const expDate = new Date(item.expirationDate)
-        const daysLeft = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24))
+        const daysLeft = Math.ceil((expDate.getTime() - today) / (1000 * 60 * 60 * 24))
         const isExpiringSoon = daysLeft <= 3
  
         const card = document.createElement('div')
@@ -210,7 +278,7 @@ async function loadItems() {
             <div class="item-info">
                 <h3>${item.name}</h3>
                 <p>${item.brand}</p>
-                <p>Expires: ${expDate.toLocaleDateString()} (${daysLeft} day${daysLeft !== 1 ? 's' : ''} left)</p>
+                <p>Expires: ${expDate.toLocaleDateString(undefined, { timeZone: 'UTC' })} (${daysLeft} day${daysLeft !== 1 ? 's' : ''} left)</p>
             </div>
             <button class="delete-btn" onclick="deleteItem('${item._id}', '${item.name}')">✓</button>
         `
