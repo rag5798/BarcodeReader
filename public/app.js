@@ -47,8 +47,6 @@ const picker = new Pikaday({
  
 let scannerActive = false
 let scannerStream = null
-let overlayAnimFrame = null
-let scanLineColor = 'red'
 let zxingReader = null
 
 function getZXingReader() {
@@ -92,32 +90,10 @@ async function startScanner() {
         await video.play()
         scannerActive = true
         container.style.display = 'block'
-        drawOverlay()
         scanLoop()
     } catch (error) {
         await showAlert('Camera access denied or unavailable.')
     }
-}
-
-function drawOverlay() {
-    const video = document.getElementById('scanner-video')
-    const overlay = document.getElementById('scanner-overlay')
-    const ctx = overlay.getContext('2d')
-
-    overlay.width = video.clientWidth
-    overlay.height = video.clientHeight
-
-    ctx.clearRect(0, 0, overlay.width, overlay.height)
-
-    ctx.fillStyle = 'rgba(0,0,0,0.4)'
-    ctx.fillRect(0, 0, overlay.width, overlay.height * 0.35)
-    ctx.fillRect(0, overlay.height * 0.65, overlay.width, overlay.height * 0.35)
-
-    ctx.strokeStyle = scanLineColor
-    ctx.lineWidth = 2
-    ctx.strokeRect(20, overlay.height * 0.35, overlay.width - 40, overlay.height * 0.30)
-
-    overlayAnimFrame = requestAnimationFrame(drawOverlay)
 }
 
 // setTimeout-based loop — waits for each frame to finish before scheduling
@@ -133,8 +109,6 @@ async function scanFrame() {
     const capture = document.getElementById('scanner-capture')
 
     if (video.readyState !== video.HAVE_ENOUGH_DATA) return
-
-    scanLineColor = scanLineColor === 'red' ? 'rgba(255,100,0,0.9)' : 'red'
 
     const stripH = Math.floor(video.videoHeight * 0.30)
     const stripW = video.videoWidth
@@ -174,7 +148,6 @@ async function scanFrame() {
 }
 
 function stopScanner() {
-    cancelAnimationFrame(overlayAnimFrame)
     if (scannerStream) {
         scannerStream.getTracks().forEach(track => track.stop())
         scannerStream = null
