@@ -58,6 +58,69 @@ h1 {
     margin-bottom: 10px;
     display: none;
 }
+
+#product-not-found-msg {
+    color: #c0392b;
+    font-size: 13px;
+    margin-bottom: 8px;
+    display: none;
+}
+
+.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 3px;
+}
+
+#product-info input {
+    padding: 7px;
+    font-size: 14px;
+}
+
+/* Scanner guide box — box-shadow dims everything outside the ROI */
+#scan-guide {
+    position: absolute;
+    top: 37.5%;
+    left: 10%;
+    width: 80%;
+    height: 25%;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    border-radius: 4px;
+    pointer-events: none;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+}
+
+#scanner-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+#focus-control {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #555;
+}
+
+#focus-control input[type="range"] {
+    flex: 1;
+    margin-bottom: 0;
+    padding: 0;
+    border: none;
+}
+
+#torch-btn {
+    width: auto !important;
+    padding: 6px 14px !important;
+    margin-bottom: 0 !important;
+    font-size: 14px !important;
+}
  
 .items-container {
     max-width: 600px;

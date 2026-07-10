@@ -20,12 +20,23 @@
  
         <div id="scanner-container" style="display:none; position:relative; margin-bottom:10px;">
             <video id="scanner-video" style="width:100%; border-radius:6px;" playsinline></video>
-<canvas id="scanner-capture" style="display:none;"></canvas>
+            <div id="scan-guide"></div>
+            <canvas id="scanner-capture" style="display:none;"></canvas>
+            <div id="scanner-controls">
+                <div id="focus-control" style="display:none;">
+                    <label>Focus</label>
+                    <input type="range" id="focus-slider" min="0" max="1" step="0.01" value="0.5" />
+                </div>
+                <button id="torch-btn" style="display:none;" onclick="handleTorchClick()">Torch: Off</button>
+            </div>
         </div>
- 
+
         <div id="product-info">
-            <p><strong>Name:</strong> <span id="product-name"></span></p>
-            <p><strong>Brand:</strong> <span id="product-brand"></span></p>
+            <p id="product-not-found-msg">Product not found — enter details manually:</p>
+            <label class="field-label">Name</label>
+            <input type="text" id="product-name" placeholder="Product name" />
+            <label class="field-label">Brand</label>
+            <input type="text" id="product-brand" placeholder="Brand" />
         </div>
  
         <input type="text" id="expiration-date" placeholder="Select expiration date" readonly />

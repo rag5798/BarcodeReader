@@ -48,6 +48,7 @@ const picker = new Pikaday({
 let scannerActive = false
 let scannerStream = null
 let zxingReader = null
+let torchOn = false
 
 function getZXingReader() {
     if (zxingReader) return zxingReader
@@ -80,20 +81,61 @@ async function startScanner() {
         scannerStream = await navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: 'environment',
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                frameRate: { ideal: 30 },
-                advanced: [{ focusMode: 'continuous' }]
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                frameRate: { ideal: 30 }
             }
         })
         video.srcObject = scannerStream
         await video.play()
         scannerActive = true
         container.style.display = 'block'
+        await setupCameraControls(scannerStream.getVideoTracks()[0])
         scanLoop()
     } catch (error) {
         await showAlert('Camera access denied or unavailable.')
     }
+}
+
+async function setupCameraControls(track) {
+    const capabilities = track.getCapabilities()
+
+    // Focus: manual with saved distance, falls back to continuous
+    if (capabilities.focusMode?.includes('manual') && capabilities.focusDistance) {
+        const { min, max } = capabilities.focusDistance
+        const slider = document.getElementById('focus-slider')
+        slider.min = min
+        slider.max = max
+        slider.step = capabilities.focusDistance.step || 0.01
+
+        const saved = parseFloat(localStorage.getItem('focusDistance'))
+        slider.value = (!isNaN(saved) && saved >= min && saved <= max) ? saved : ((min + max) / 2)
+
+        await track.applyConstraints({ advanced: [{ focusMode: 'manual', focusDistance: parseFloat(slider.value) }] }).catch(() => {})
+
+        slider.oninput = async () => {
+            const dist = parseFloat(slider.value)
+            localStorage.setItem('focusDistance', dist)
+            await track.applyConstraints({ advanced: [{ focusMode: 'manual', focusDistance: dist }] }).catch(() => {})
+        }
+
+        document.getElementById('focus-control').style.display = 'flex'
+    } else {
+        await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {})
+    }
+
+    // Torch: show button only if device supports it
+    if (capabilities.torch) {
+        document.getElementById('torch-btn').style.display = 'block'
+    }
+}
+
+async function handleTorchClick() {
+    const track = scannerStream?.getVideoTracks()[0]
+    if (!track) return
+    torchOn = !torchOn
+    await track.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(() => {})
+    document.getElementById('torch-btn').textContent = torchOn ? 'Torch: On' : 'Torch: Off'
 }
 
 // setTimeout-based loop — waits for each frame to finish before scheduling
@@ -110,18 +152,17 @@ async function scanFrame() {
 
     if (video.readyState !== video.HAVE_ENOUGH_DATA) return
 
-    const stripH = Math.floor(video.videoHeight * 0.30)
-    const stripW = video.videoWidth
-    capture.width = stripW
-    capture.height = stripH
+    // ROI matches the CSS guide box: 10-90% wide, 37.5-62.5% tall
+    const roiX = Math.floor(video.videoWidth * 0.10)
+    const roiY = Math.floor(video.videoHeight * 0.375)
+    const roiW = Math.floor(video.videoWidth * 0.80)
+    const roiH = Math.floor(video.videoHeight * 0.25)
+    capture.width = roiW
+    capture.height = roiH
 
-    // willReadFrequently tells the browser to optimize this canvas for pixel reads
     const ctx = capture.getContext('2d', { willReadFrequently: true })
-    const srcY = (video.videoHeight - stripH) / 2
-
-    // Contrast boost makes barcode edges sharper for blurry cameras
     ctx.filter = 'contrast(160%) brightness(105%)'
-    ctx.drawImage(video, 0, srcY, stripW, stripH, 0, 0, stripW, stripH)
+    ctx.drawImage(video, roiX, roiY, roiW, roiH, 0, 0, roiW, roiH)
     ctx.filter = 'none'
 
     const reader = getZXingReader()
@@ -153,7 +194,11 @@ function stopScanner() {
         scannerStream = null
     }
     document.getElementById('scanner-container').style.display = 'none'
+    document.getElementById('focus-control').style.display = 'none'
+    document.getElementById('torch-btn').style.display = 'none'
+    document.getElementById('torch-btn').textContent = 'Torch: Off'
     scannerActive = false
+    torchOn = false
     zxingReader = null
 }
  
@@ -179,16 +224,18 @@ async function lookupBarcode() {
 
         if (res.ok) {
             const data = await res.json()
-            currentProduct = {
-                name: data.name,
-                brand: data.brand,
-                barcode: barcode
-            }
-            document.getElementById('product-name').textContent = currentProduct.name
-            document.getElementById('product-brand').textContent = currentProduct.brand
+            currentProduct = { barcode }
+            document.getElementById('product-name').value = (data.name !== 'Unknown') ? data.name : ''
+            document.getElementById('product-brand').value = (data.brand !== 'Unknown') ? data.brand : ''
+            document.getElementById('product-not-found-msg').style.display = 'none'
             document.getElementById('product-info').style.display = 'block'
         } else if (res.status === 404) {
-            await showAlert('Product not found. Try another barcode.')
+            // Show empty form so user can enter the product manually
+            currentProduct = { barcode }
+            document.getElementById('product-name').value = ''
+            document.getElementById('product-brand').value = ''
+            document.getElementById('product-not-found-msg').style.display = 'block'
+            document.getElementById('product-info').style.display = 'block'
         } else {
             throw new Error('Lookup failed')
         }
@@ -202,6 +249,12 @@ async function saveItem() {
         await showAlert('Look up a barcode first.')
         return
     }
+    const name = document.getElementById('product-name').value.trim()
+    if (!name) {
+        await showAlert('Please enter a product name.')
+        return
+    }
+    const brand = document.getElementById('product-brand').value.trim()
     const expirationDate = document.getElementById('expiration-date').value
     if (!expirationDate) {
         await showAlert('Please select an expiration date.')
@@ -212,12 +265,15 @@ async function saveItem() {
         const res = await fetch('/api/items', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...currentProduct, expirationDate })
+            body: JSON.stringify({ name, brand, barcode: currentProduct.barcode, expirationDate })
         })
         if (!res.ok) throw new Error('Save failed')
 
         currentProduct = null
         document.getElementById('barcode-input').value = ''
+        document.getElementById('product-name').value = ''
+        document.getElementById('product-brand').value = ''
+        document.getElementById('product-not-found-msg').style.display = 'none'
         document.getElementById('product-info').style.display = 'none'
         document.getElementById('barcode-input').focus()
         await loadItems()
@@ -283,5 +339,5 @@ async function loadItems() {
         container.appendChild(card)
     })
 }
- 
+
 loadItems()

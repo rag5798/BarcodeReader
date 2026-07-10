@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const Item = require('../database/items')
- 
+
 // GET all items
 router.get('/', async (req, res) => {
     try {
@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
         res.status(500).json({ message: error.message })
     }
 })
- 
+
 // POST a new item
 router.post('/', async (req, res) => {
     const item = new Item({
@@ -27,7 +27,7 @@ router.post('/', async (req, res) => {
         res.status(400).json({ message: error.message })
     }
 })
- 
+
 // DELETE an item by id
 router.delete('/:id', async (req, res) => {
     try {
@@ -37,5 +37,5 @@ router.delete('/:id', async (req, res) => {
         res.status(500).json({ message: error.message })
     }
 })
- 
+
 module.exports = router
