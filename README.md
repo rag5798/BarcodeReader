@@ -1,5 +1,8 @@
 # ShelfWatch — Barcode Inventory Scanner
 
+**Live demo:** [barcodereader-87hr.onrender.com](https://barcodereader-87hr.onrender.com)
+*(Hosted on Render's free tier — the first load after idle can take up to a minute.)*
+
 A web-based inventory tool that scans product barcodes and stores items in a database. The idea came from working in grocery retail, where quickly logging and looking up products by barcode is a genuinely useful task.
 
 Users can scan a barcode with their camera (or upload an image of one), and the app decodes it and records the item. Products can then be looked up by their barcode.
